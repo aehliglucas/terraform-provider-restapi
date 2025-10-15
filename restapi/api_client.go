@@ -3,8 +3,6 @@ package restapi
 import (
 	"bytes"
 	"context"
-	"crypto/tls"
-	"crypto/x509"
 	"errors"
 	"fmt"
 	"io"
@@ -13,7 +11,6 @@ import (
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
-	"os"
 	"strings"
 	"time"
 
@@ -88,18 +85,10 @@ func NewAPIClient(opt *apiClientOpt) (*APIClient, error) {
 		log.Printf("api_client.go: Constructing debug api_client\n")
 	}
 
-	if opt.uri == "" {
-		return nil, errors.New("uri must be set to construct an API client")
-	}
-
 	/* Sane default */
 	if opt.idAttribute == "" {
 		opt.idAttribute = "id"
 	}
-
-	/* Remove any trailing slashes since we will append
-	   to this URL with our own root-prefixed location */
-	opt.uri = strings.TrimSuffix(opt.uri, "/")
 
 	if opt.createMethod == "" {
 		opt.createMethod = "POST"
@@ -114,57 +103,17 @@ func NewAPIClient(opt *apiClientOpt) (*APIClient, error) {
 		opt.destroyMethod = "DELETE"
 	}
 
-	tlsConfig := &tls.Config{
-		/* Disable TLS verification if requested */
-		InsecureSkipVerify: opt.insecure,
-	}
-
-	if opt.certString != "" && opt.keyString != "" {
-		cert, err := tls.X509KeyPair([]byte(opt.certString), []byte(opt.keyString))
-		if err != nil {
-			return nil, err
-		}
-		tlsConfig.Certificates = []tls.Certificate{cert}
-	}
-
-	if opt.certFile != "" && opt.keyFile != "" {
-		cert, err := tls.LoadX509KeyPair(opt.certFile, opt.keyFile)
-		if err != nil {
-			return nil, err
-		}
-		tlsConfig.Certificates = []tls.Certificate{cert}
-	}
-
-	// Load root CA
-	if opt.rootCAFile != "" || opt.rootCAString != "" {
-		caCertPool := x509.NewCertPool()
-		var rootCA []byte
-		var err error
-
-		if opt.rootCAFile != "" {
-			if opt.debug {
-				log.Printf("api_client.go: Reading root CA file: %s\n", opt.rootCAFile)
-			}
-			rootCA, err = os.ReadFile(opt.rootCAFile)
-			if err != nil {
-				return nil, fmt.Errorf("could not read root CA file: %v", err)
-			}
-		} else {
-			if opt.debug {
-				log.Printf("api_client.go: Using provided root CA string\n")
-			}
-			rootCA = []byte(opt.rootCAString)
-		}
-
-		if !caCertPool.AppendCertsFromPEM(rootCA) {
-			return nil, errors.New("failed to append root CA certificate")
-		}
-		tlsConfig.RootCAs = caCertPool
-	}
-
-	tr := &http.Transport{
-		TLSClientConfig: tlsConfig,
-		Proxy:           http.ProxyFromEnvironment,
+	tr, err := buildTLSConfig(&TLSConfigOpts{
+		opt.insecure,
+		opt.certString,
+		opt.keyString,
+		opt.certFile,
+		opt.keyFile,
+		opt.rootCAFile,
+		opt.rootCAString,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("Failed to construct TLS config for API client: %v", err)
 	}
 
 	var cookieJar http.CookieJar
@@ -248,7 +197,15 @@ Helper function that handles sending/receiving and handling
 	of HTTP data in and out.
 */
 func (client *APIClient) sendRequest(method string, path string, data string) (string, error) {
-	fullURI := client.uri + path
+	fullURI := client.uri
+	
+	if fullURI == "" {
+		return "", errors.New("uri must be set to send an HTTP request")
+	}
+	
+	/* Remove any trailing slashes since we will append
+	   to this URL with our own root-prefixed location */
+	fullURI = strings.TrimSuffix(fullURI, "/")
 	var req *http.Request
 	var err error
 

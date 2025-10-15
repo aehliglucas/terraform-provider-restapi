@@ -29,10 +29,46 @@ func resourceRestAPI() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"path": {
+			"uri": {
+				Type:		 schema.TypeString,
+				Description: "Full API URL and path.",
+				Required:	 true,
+			},
+			"cert_string": {
 				Type:        schema.TypeString,
-				Description: "The API path on top of the base URL set in the provider that represents objects of this type on the API server.",
-				Required:    true,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("REST_API_CERT_STRING", nil),
+				Description: "Defaults to the `cert_string` field set in the provider. When set with the key_string parameter, the provider will load a client certificate as a string for mTLS authentication.",
+			},
+			"key_string": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("REST_API_KEY_STRING", nil),
+				Description: "Defaults to the `key_string` field set in the provider. When set with the cert_string parameter, the provider will load a client certificate as a string for mTLS authentication. Note that this mechanism simply delegates to golang's tls.LoadX509KeyPair which does not support passphrase protected private keys. The most robust security protections available to the key_file are simple file system permissions.",
+			},
+			"cert_file": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("REST_API_CERT_FILE", nil),
+				Description: "Defaults to the `cert_file` field set in the provider. When set with the key_file parameter, the provider will load a client certificate as a file for mTLS authentication.",
+			},
+			"key_file": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("REST_API_KEY_FILE", nil),
+				Description: "Defaults to the `key_file` field set in the provider. When set with the cert_file parameter, the provider will load a client certificate as a file for mTLS authentication. Note that this mechanism simply delegates to golang's tls.LoadX509KeyPair which does not support passphrase protected private keys. The most robust security protections available to the key_file are simple file system permissions.",
+			},
+			"root_ca_file": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("REST_API_ROOT_CA_FILE", nil),
+				Description: "Defaults to the `root_ca_file` field set in the provider. When set, the provider will load a root CA certificate as a file for mTLS authentication. This is useful when the API server is using a self-signed certificate and the client needs to trust it.",
+			},
+			"root_ca_string": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("REST_API_ROOT_CA_STRING", nil),
+				Description: "Defaults to the `root_ca_string` field set in the provider. When set, the provider will load a root CA certificate as a string for mTLS authentication. This is useful when the API server is using a self-signed certificate and the client needs to trust it.",
 			},
 			"create_path": {
 				Type:        schema.TypeString,
@@ -87,7 +123,7 @@ func resourceRestAPI() *schema.Resource {
 			"data": {
 				Type:        schema.TypeString,
 				Description: "Valid JSON object that this provider will manage with the API server.",
-				Required:    true,
+				Optional:    true,
 				Sensitive:   isDataSensitive,
 				ValidateFunc: func(val interface{}, key string) (warns []string, errs []error) {
 					v := val.(string)
@@ -446,7 +482,7 @@ func makeAPIObject(d *schema.ResourceData, meta interface{}) (*APIObject, error)
 
 func buildAPIObjectOpts(d *schema.ResourceData) (*apiObjectOpts, error) {
 	opts := &apiObjectOpts{
-		path: d.Get("path").(string),
+		uri: d.Get("uri").(string),
 	}
 
 	/* Allow user to override provider-level id_attribute */
@@ -464,6 +500,24 @@ func buildAPIObjectOpts(d *schema.ResourceData) (*apiObjectOpts, error) {
 
 	log.Printf("resource_rest_api.go: buildAPIObjectOpts routine called for id '%s'\n", opts.id)
 
+	if v, ok := d.GetOk("cert_string"); ok {
+		opts.certString = v.(string)
+	}
+	if v, ok := d.GetOk("key_string"); ok {
+		opts.keyString = v.(string)
+	}
+	if v, ok := d.GetOk("cert_file"); ok {
+		opts.certFile = v.(string)
+	}
+	if v, ok := d.GetOk("key_file"); ok {
+		opts.keyFile = v.(string)
+	}
+	if v, ok := d.GetOk("root_ca_string"); ok {
+		opts.rootCAString = v.(string)
+	}
+	if v, ok := d.GetOk("root_ca_file"); ok {
+		opts.rootCAFile = v.(string)
+	}
 	if v, ok := d.GetOk("create_path"); ok {
 		opts.postPath = v.(string)
 	}

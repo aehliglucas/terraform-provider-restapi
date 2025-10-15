@@ -12,7 +12,13 @@ import (
 )
 
 type apiObjectOpts struct {
-	path          string
+	uri           string
+	certFile      string
+	keyFile       string
+	rootCAFile    string
+	certString    string
+	keyString     string
+	rootCAString  string
 	getPath       string
 	postPath      string
 	putPath       string
@@ -36,6 +42,12 @@ type apiObjectOpts struct {
 /*APIObject is the state holding struct for a restapi_object resource*/
 type APIObject struct {
 	apiClient     *APIClient
+	certFile      string
+	keyFile       string
+	rootCAFile    string
+	certString    string
+	keyString     string
+	rootCAString  string
 	getPath       string
 	postPath      string
 	putPath       string
@@ -75,6 +87,26 @@ func NewAPIObject(iClient *APIClient, opts *apiObjectOpts) (*APIObject, error) {
 		opts.idAttribute = iClient.idAttribute
 	}
 
+	if opts.uri != "" {
+		iClient.uri = opts.uri
+	}
+	for _, field := range []string{opts.certString, opts.keyString, opts.certFile, opts.keyFile, opts.rootCAFile, opts.rootCAString} {
+		if field != "" {
+			tlsConfig, err := buildTLSConfig(&TLSConfigOpts{
+				certString:   opts.certString,
+				keyString:    opts.keyString,
+				certFile: 	  opts.certFile,
+				keyFile: 	  opts.keyFile,
+				rootCAString: opts.rootCAString,
+				rootCAFile:   opts.rootCAFile,
+			})
+			if err != nil {
+				return nil, fmt.Errorf("Error while trying to construct the TLS config: %v", err)
+			}
+			iClient.httpClient.Transport = tlsConfig
+			break
+		}
+	}
 	if opts.createMethod == "" {
 		opts.createMethod = iClient.createMethod
 	}
@@ -97,19 +129,19 @@ func NewAPIObject(iClient *APIClient, opts *apiObjectOpts) (*APIObject, error) {
 		opts.destroyData = iClient.destroyData
 	}
 	if opts.postPath == "" {
-		opts.postPath = opts.path
+		opts.postPath = opts.uri
 	}
 	if opts.getPath == "" {
-		opts.getPath = opts.path + "/{id}"
+		opts.getPath = opts.uri + "/{id}"
 	}
 	if opts.putPath == "" {
-		opts.putPath = opts.path + "/{id}"
+		opts.putPath = opts.uri + "/{id}"
 	}
 	if opts.deletePath == "" {
-		opts.deletePath = opts.path + "/{id}"
+		opts.deletePath = opts.uri + "/{id}"
 	}
 	if opts.searchPath == "" {
-		opts.searchPath = opts.path
+		opts.searchPath = opts.uri
 	}
 
 	obj := APIObject{

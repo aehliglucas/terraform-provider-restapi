@@ -84,7 +84,7 @@ func dataSourceRestAPI() *schema.Resource {
 }
 
 func dataSourceRestAPIRead(d *schema.ResourceData, meta interface{}) error {
-	path := d.Get("path").(string)
+	uri := d.Get("uri").(string)
 	searchPath := d.Get("search_path").(string)
 	queryString := d.Get("query_string").(string)
 	debug := d.Get("debug").(bool)
@@ -114,11 +114,11 @@ func dataSourceRestAPIRead(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	if debug {
-		log.Printf("datasource_api_object.go:\npath: %s\nsearch_path: %s\nquery_string: %s\nsearch_key: %s\nsearch_value: %s\nresults_key: %s\nid_attribute: %s", path, searchPath, queryString, searchKey, searchValue, resultsKey, idAttribute)
+		log.Printf("datasource_api_object.go:\npath: %s\nsearch_path: %s\nquery_string: %s\nsearch_key: %s\nsearch_value: %s\nresults_key: %s\nid_attribute: %s", uri, searchPath, queryString, searchKey, searchValue, resultsKey, idAttribute)
 	}
 
 	opts := &apiObjectOpts{
-		path:        path,
+		uri:         uri,
 		searchPath:  searchPath,
 		debug:       debug,
 		queryString: readQueryString,

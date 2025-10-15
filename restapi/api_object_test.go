@@ -151,7 +151,7 @@ func TestAPIObject(t *testing.T) {
 		}
 
 		objectOpts := &apiObjectOpts{
-			path:  "/api/objects",
+			uri:  "/api/objects",
 			data:  fmt.Sprintf(`{ "Id": "%s" }`, id), /* Start with only an empty JSON object ID as our "data" */
 			debug: apiObjectDebug,                    /* Whether the object's debug is enabled */
 		}
@@ -283,7 +283,7 @@ func TestAPIObject(t *testing.T) {
 
 	t.Run("find_object", func(t *testing.T) {
 		objectOpts := &apiObjectOpts{
-			path:  "/api/objects",
+			uri:  "/api/objects",
 			debug: apiObjectDebug,
 		}
 		object, err := NewAPIObject(client, objectOpts)

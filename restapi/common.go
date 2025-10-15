@@ -1,8 +1,12 @@
 package restapi
 
 import (
+	"crypto/tls"
+	"crypto/x509"
+	"errors"
 	"fmt"
 	"log"
+	"net/http"
 	"os"
 	"strconv"
 	"strings"
@@ -159,4 +163,62 @@ func expandStringList(configured []interface{}) []string {
 		}
 	}
 	return vs
+}
+
+type TLSConfigOpts struct {
+	insecure 	 bool
+	certString 	 string
+	keyString 	 string
+	certFile 	 string
+	keyFile 	 string
+	rootCAFile 	 string
+	rootCAString string
+}
+
+func buildTLSConfig(opt *TLSConfigOpts) (*http.Transport, error) {
+	tlsConfig := &tls.Config{
+		/* Disable TLS verification if requested */
+		InsecureSkipVerify: opt.insecure,
+	}
+
+	if opt.certString != "" && opt.keyString != "" {
+		cert, err := tls.X509KeyPair([]byte(opt.certString), []byte(opt.keyString))
+		if err != nil {
+			return nil, err
+		}
+		tlsConfig.Certificates = []tls.Certificate{cert}
+	}
+
+	if opt.certFile != "" && opt.keyFile != "" {
+		cert, err := tls.LoadX509KeyPair(opt.certFile, opt.keyFile)
+		if err != nil {
+			return nil, err
+		}
+		tlsConfig.Certificates = []tls.Certificate{cert}
+	}
+
+	// Load root CA
+	if opt.rootCAFile != "" || opt.rootCAString != "" {
+		caCertPool := x509.NewCertPool()
+		var rootCA []byte
+		var err error
+
+		if opt.rootCAFile != "" {rootCA, err = os.ReadFile(opt.rootCAFile)
+			if err != nil {
+				return nil, fmt.Errorf("could not read root CA file: %v", err)
+			}
+		} else {
+			rootCA = []byte(opt.rootCAString)
+		}
+
+		if !caCertPool.AppendCertsFromPEM(rootCA) {
+			return nil, errors.New("failed to append root CA certificate")
+		}
+		tlsConfig.RootCAs = caCertPool
+	}
+
+	return &http.Transport{
+		TLSClientConfig: tlsConfig,
+		Proxy:           http.ProxyFromEnvironment,
+	}, nil
 }

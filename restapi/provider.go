@@ -1,7 +1,6 @@
 package restapi
 
 import (
-	"fmt"
 	"math"
 	"net/url"
 
@@ -14,7 +13,7 @@ func Provider() *schema.Provider {
 		Schema: map[string]*schema.Schema{
 			"uri": {
 				Type:        schema.TypeString,
-				Required:    true,
+				Optional:    true,
 				DefaultFunc: schema.EnvDefaultFunc("REST_API_URI", nil),
 				Description: "URI of the REST API endpoint. This serves as the base of all requests.",
 			},
@@ -300,14 +299,5 @@ func configureProvider(d *schema.ResourceData) (interface{}, error) {
 		opt.rootCAString = v.(string)
 
 	}
-	client, err := NewAPIClient(opt)
-
-	if v, ok := d.GetOk("test_path"); ok {
-		testPath := v.(string)
-		_, err := client.sendRequest(client.readMethod, testPath, "")
-		if err != nil {
-			return client, fmt.Errorf("a test request to %v after setting up the provider did not return an OK response - is your configuration correct? %v", testPath, err)
-		}
-	}
-	return client, err
+	return NewAPIClient(opt)
 }

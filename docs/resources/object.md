@@ -26,10 +26,12 @@ resource "restapi_object" "Foo2" {
 ### Required
 
 - `data` (String) Valid JSON object that this provider will manage with the API server.
-- `path` (String) The API path on top of the base URL set in the provider that represents objects of this type on the API server.
+- `uri` (String) Full API URL and path.
 
 ### Optional
 
+- `cert_file` (String) Defaults to the `cert_file` field set in the provider. When set with the key_file parameter, the provider will load a client certificate as a file for mTLS authentication.
+- `cert_string` (String) Defaults to the `cert_string` field set in the provider. When set with the key_string parameter, the provider will load a client certificate as a string for mTLS authentication.
 - `create_method` (String) Defaults to `create_method` set on the provider. Allows per-resource override of `create_method` (see `create_method` provider config documentation)
 - `create_path` (String) Defaults to `path`. The API path that represents where to CREATE (POST) objects of this type on the API server. The string `{id}` will be replaced with the terraform ID of the object if the data contains the `id_attribute`.
 - `debug` (Boolean) Whether to emit verbose debug output while working with the API object on the server.
@@ -40,12 +42,16 @@ resource "restapi_object" "Foo2" {
 - `id_attribute` (String) Defaults to `id_attribute` set on the provider. Allows per-resource override of `id_attribute` (see `id_attribute` provider config documentation)
 - `ignore_all_server_changes` (Boolean) By default Terraform will attempt to revert changes to remote resources. Set this to 'true' to ignore any remote changes. Default: false
 - `ignore_changes_to` (List of String) A list of fields to which remote changes will be ignored. For example, an API might add or remove metadata, such as a 'last_modified' field, which Terraform should not attempt to correct. To ignore changes to nested fields, use the dot syntax: 'metadata.timestamp'
+- `key_file` (String) Defaults to the `key_file` field set in the provider. When set with the cert_file parameter, the provider will load a client certificate as a file for mTLS authentication. Note that this mechanism simply delegates to golang's tls.LoadX509KeyPair which does not support passphrase protected private keys. The most robust security protections available to the key_file are simple file system permissions.
+- `key_string` (String) Defaults to the `key_string` field set in the provider. When set with the cert_string parameter, the provider will load a client certificate as a string for mTLS authentication. Note that this mechanism simply delegates to golang's tls.LoadX509KeyPair which does not support passphrase protected private keys. The most robust security protections available to the key_file are simple file system permissions.
 - `object_id` (String) Defaults to the id learned by the provider during normal operations and `id_attribute`. Allows you to set the id manually. This is used in conjunction with the `*_path` attributes.
 - `query_string` (String) Query string to be included in the path
 - `read_data` (String) Valid JSON object to pass during read requests.
 - `read_method` (String) Defaults to `read_method` set on the provider. Allows per-resource override of `read_method` (see `read_method` provider config documentation)
 - `read_path` (String) Defaults to `path/{id}`. The API path that represents where to READ (GET) objects of this type on the API server. The string `{id}` will be replaced with the terraform ID of the object.
 - `read_search` (Map of String) Custom search for `read_path`. This map will take `search_data`, `search_key`, `search_value`, `results_key` and `query_string` (see datasource config documentation)
+- `root_ca_file` (String) Defaults to the `root_ca_file` field set in the provider. When set, the provider will load a root CA certificate as a file for mTLS authentication. This is useful when the API server is using a self-signed certificate and the client needs to trust it.
+- `root_ca_string` (String) Defaults to the `root_ca_string` field set in the provider. When set, the provider will load a root CA certificate as a string for mTLS authentication. This is useful when the API server is using a self-signed certificate and the client needs to trust it.
 - `update_data` (String) Valid JSON object to pass during to update requests.
 - `update_method` (String) Defaults to `update_method` set on the provider. Allows per-resource override of `update_method` (see `update_method` provider config documentation)
 - `update_path` (String) Defaults to `path/{id}`. The API path that represents where to UPDATE (PUT) objects of this type on the API server. The string `{id}` will be replaced with the terraform ID of the object.
